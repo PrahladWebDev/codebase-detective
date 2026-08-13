@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-ink-950 text-paper-100 font-body antialiased overflow-x-hidden;
+  }
+  ::selection {
+    @apply bg-spotlight/30 text-paper-100;
+  }
+  * {
+    scrollbar-color: #2a313f #0f131a;
+  }
+  :focus-visible {
+    outline: 2px solid #f2a93b;
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-ink-900 border border-ink-700 rounded-xl;
+  }
+  .mono {
+    @apply font-mono text-sm;
+  }
+  .btn-primary {
+    @apply inline-flex items-center gap-2 rounded-lg bg-spotlight px-5 py-3 font-display font-semibold text-ink-950 transition hover:bg-spotlight-glow;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 rounded-lg border border-ink-600 px-5 py-3 font-display font-semibold text-paper-100 transition hover:border-spotlight/60 hover:text-spotlight;
+  }
+}
+
+/* Dependency graph — animated, glowing edges.
+   `edge-flow` moves the dash pattern along the path so the direction of
+   the import (source -> target) is visible at a glance. `edge-glow-pulse`
+   layers a soft, breathing drop-shadow on top so active connections read
+   as "alive" rather than static lines. Colors come from inline style per
+   edge (normal/critical), so the glow is set per-class below to match. */
+@keyframes edge-flow {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+@keyframes edge-glow-pulse-normal {
+  0%, 100% { filter: drop-shadow(0 0 2px #F2A93B) drop-shadow(0 0 4px rgba(242, 169, 59, 0.5)); }
+  50% { filter: drop-shadow(0 0 5px #F2A93B) drop-shadow(0 0 10px rgba(242, 169, 59, 0.6)); }
+}
+
+@keyframes edge-glow-pulse-critical {
+  0%, 100% { filter: drop-shadow(0 0 2px #E5484D) drop-shadow(0 0 4px rgba(229, 72, 77, 0.55)); }
+  50% { filter: drop-shadow(0 0 6px #E5484D) drop-shadow(0 0 12px rgba(229, 72, 77, 0.7)); }
+}
+
+.edge-glow .react-flow__edge-path {
+  stroke-dasharray: 6 6;
+  animation: edge-flow 0.6s linear infinite;
+}
+
+.edge-glow-normal .react-flow__edge-path {
+  animation: edge-flow 0.6s linear infinite, edge-glow-pulse-normal 2.2s ease-in-out infinite;
+}
+
+.edge-glow-critical .react-flow__edge-path {
+  animation: edge-flow 0.4s linear infinite, edge-glow-pulse-critical 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edge-glow .react-flow__edge-path {
+    animation: none !important;
+  }
+}
