@@ -4,6 +4,10 @@ const helmet = require('helmet');
 const analysisRoutes = require('./routes/analysis');
 
 const app = express();
+// Required behind Nginx: trust the first hop only (Nginx itself), so
+// express-rate-limit reads the real client IP from X-Forwarded-For instead
+// of throwing a ValidationError on every rate-limited request.
+app.set('trust proxy', 1);
 
 app.use(helmet());
 app.use(cors());
