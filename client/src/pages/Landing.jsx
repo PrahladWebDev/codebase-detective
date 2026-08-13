@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, GitBranch, AlertTriangle, Building2, ScanSearch, X } from 'lucide-react';
 import HealthGauge from '../components/HealthGauge.jsx';
+import demoVideo from '../utils/Codebase Detective.mp4';
 
 const FEATURES = [
   {
@@ -43,7 +44,7 @@ export default function Landing() {
               <X size={24} />
             </button>
             <video
-              src="/Codebase Detective.mp4"
+              src={demoVideo}
               controls
               autoPlay
               className="w-full rounded-lg shadow-glow"
