@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, GitBranch, AlertTriangle, Building2, ScanSearch } from 'lucide-react';
+import { ArrowRight, GitBranch, AlertTriangle, Building2, ScanSearch, X } from 'lucide-react';
 import HealthGauge from '../components/HealthGauge.jsx';
 
 const FEATURES = [
@@ -21,8 +22,36 @@ const FEATURES = [
 ];
 
 export default function Landing() {
+  const [showDemo, setShowDemo] = useState(false);
+
   return (
     <div className="min-h-screen bg-ink-950 bg-beam text-paper-100">
+      {showDemo && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4"
+          onClick={() => setShowDemo(false)}
+        >
+          <div
+            className="relative w-full max-w-3xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowDemo(false)}
+              className="absolute -top-10 right-0 text-paper-300 hover:text-spotlight transition"
+              aria-label="Close demo video"
+            >
+              <X size={24} />
+            </button>
+            <video
+              src="/Codebase Detective.mp4"
+              controls
+              autoPlay
+              className="w-full rounded-lg shadow-glow"
+            />
+          </div>
+        </div>
+      )}
+
       <header className="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
         <div className="flex items-center gap-2 font-display font-semibold">
           <span className="text-xl">🕵️</span>
@@ -49,9 +78,9 @@ export default function Landing() {
             <Link to="/analyze" className="btn-primary">
               Analyze Your Codebase <ArrowRight size={16} />
             </Link>
-            <a href="#preview" className="btn-secondary">
+            <button onClick={() => setShowDemo(true)} className="btn-secondary">
               View Demo
-            </a>
+            </button>
           </div>
           <p className="mt-4 text-xs text-paper-500">
             Findings are heuristics, not verdicts — every flag is a lead worth reviewing, not an automatic judgment.
