@@ -5,29 +5,60 @@ import { X } from 'lucide-react';
 import { SectionHeader, SearchInput } from '../../layouts/DashboardLayout.jsx';
 import { formatNumber } from '../../utils/format.js';
 
-const STATE_COLORS = {
-  normal: { border: '#3A4353', bg: '#161B24', text: '#E9EBEF' },
-  warning: { border: '#F2C94C', bg: '#211D10', text: '#F2C94C' },
-  critical: { border: '#E5484D', bg: '#22120F', text: '#F2A5A5' },
-};
-
-// Glow color per edge state — brighter than the node border colors so the
-// animated flow reads clearly against the dark canvas.
-const EDGE_GLOW = {
-  normal: '#F2A93B',
+// Flags layered on top of the per-module color, not a replacement for it.
+const FLAG_COLORS = {
   warning: '#F2C94C',
   critical: '#E5484D',
 };
 
+// --- Dynamic per-module color -------------------------------------------
+// Every module gets its own stable color derived from a hash of its path,
+// so two different nodes basically never look identical. Same input -> same
+// color every render (no randomness), which keeps re-layouts stable.
+function hashString(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0; // force 32-bit int
+  }
+  return Math.abs(hash);
+}
+
+function colorForId(id) {
+  const hash = hashString(id);
+  const hue = hash % 360;
+  // Fixed sat/lightness tuned to stay legible on the dark canvas.
+  const border = `hsl(${hue}, 65%, 62%)`;
+  const bg = `hsl(${hue}, 45%, 12%)`;
+  const text = `hsl(${hue}, 70%, 82%)`;
+  return { border, bg, text };
+}
+
 function GraphNode({ data }) {
-  const colors = STATE_COLORS[data.state];
+  const colors = colorForId(data.id);
+  const flag = data.flag; // 'warning' | 'critical' | null
+  const ringColor = flag ? FLAG_COLORS[flag] : null;
+
   return (
     <div
-      className="px-3 py-2 rounded-lg mono text-xs shadow"
-      style={{ background: colors.bg, border: `1.5px solid ${colors.border}`, color: colors.text, minWidth: 120 }}
+      className="relative px-3 py-2 rounded-lg mono text-xs shadow"
+      style={{
+        background: colors.bg,
+        border: `1.5px solid ${colors.border}`,
+        color: colors.text,
+        minWidth: 120,
+        boxShadow: ringColor ? `0 0 0 2px ${ringColor}55, 0 0 10px ${ringColor}66` : undefined,
+      }}
       title={data.fullPath}
     >
       <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
+      {flag && (
+        <span
+          className="absolute -top-1.5 -right-1.5 w-2.5 h-2.5 rounded-full border border-ink-900"
+          style={{ background: ringColor }}
+          title={flag === 'critical' ? 'Part of a circular dependency' : 'High fan-in (≥8)'}
+        />
+      )}
       {data.label}
       <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
     </div>
@@ -71,12 +102,12 @@ function GraphInner({ report, highlightPath }) {
   const positions = useMemo(() => layoutNodes(visibleNodes), [visibleNodes]);
 
   const flowNodes = visibleNodes.map((n, i) => {
-    const state = cycleFiles.has(n.id) ? 'critical' : n.incoming >= 8 ? 'warning' : 'normal';
+    const flag = cycleFiles.has(n.id) ? 'critical' : n.incoming >= 8 ? 'warning' : null;
     return {
       id: n.id,
       type: 'detective',
       position: positions[i],
-      data: { label: n.label, fullPath: n.path, state },
+      data: { id: n.id, label: n.label, fullPath: n.path, flag },
     };
   });
 
@@ -84,14 +115,16 @@ function GraphInner({ report, highlightPath }) {
     .filter((e) => visibleIds.has(e.from) && visibleIds.has(e.to))
     .map((e, i) => {
       const isCycle = cycleFiles.has(e.from) && cycleFiles.has(e.to);
-      const state = isCycle ? 'critical' : 'normal';
-      const color = EDGE_GLOW[state];
+      // Edge takes its color from the importing (source) module, so the
+      // flow visually "belongs" to the node it originates from. Cycle
+      // edges stay red so problem loops are still unmistakable.
+      const color = isCycle ? FLAG_COLORS.critical : colorForId(e.from).border;
       return {
         id: `e-${i}`,
         source: e.from,
         target: e.to,
         animated: true,
-        className: isCycle ? 'edge-glow edge-glow-critical' : 'edge-glow edge-glow-normal',
+        className: isCycle ? 'edge-glow edge-glow-critical' : 'edge-glow',
         style: { stroke: color, strokeWidth: isCycle ? 2 : 1.5 },
         markerEnd: {
           type: MarkerType.ArrowClosed,
@@ -137,7 +170,7 @@ function GraphInner({ report, highlightPath }) {
               pannable
               zoomable
               className="hidden sm:block"
-              nodeColor={(n) => STATE_COLORS[n.data.state].border}
+              nodeColor={(n) => colorForId(n.id).border}
               style={{ background: '#0F131A' }}
             />
           </ReactFlow>
@@ -147,9 +180,18 @@ function GraphInner({ report, highlightPath }) {
           <div className="card p-5">
             <h3 className="font-display font-semibold text-sm mb-3">Legend</h3>
             <div className="space-y-2 text-xs">
-              <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-sm border" style={{ borderColor: STATE_COLORS.normal.border }} /> Normal</div>
-              <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-sm border" style={{ borderColor: STATE_COLORS.warning.border }} /> High fan-in (≥8)</div>
-              <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-sm border" style={{ borderColor: STATE_COLORS.critical.border }} /> Part of a circular dependency</div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-sm border" style={{ borderColor: '#7C8AA5' }} />
+                Each module gets its own color; edges match the importing module
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ background: FLAG_COLORS.warning }} />
+                Dot = high fan-in (≥8 dependents)
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ background: FLAG_COLORS.critical }} />
+                Dot / red edge = part of a circular dependency
+              </div>
               <div className="flex items-center gap-2 pt-1 border-t border-ink-800 mt-1">
                 <span className="w-4 h-0.5 rounded-full bg-spotlight shadow-glow" />
                 Glowing, animated edges flow from importer → imported (arrowhead marks direction)
@@ -163,7 +205,10 @@ function GraphInner({ report, highlightPath }) {
               {mostConnected.slice(0, 8).map((m, i) => (
                 <li key={m.path}>
                   <button onClick={() => setSelectedId(m.path)} className="w-full flex justify-between items-center gap-2 hover:text-spotlight text-left">
-                    <span className="mono truncate text-paper-300">{i + 1}. {m.path.split('/').pop()}</span>
+                    <span className="mono truncate text-paper-300 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: colorForId(m.path).border }} />
+                      {i + 1}. {m.path.split('/').pop()}
+                    </span>
                     <span className="text-paper-500 shrink-0">{m.dependents} dependents</span>
                   </button>
                 </li>
