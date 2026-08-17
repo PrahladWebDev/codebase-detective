@@ -3,15 +3,15 @@
 
 module.exports = {
   UPLOAD: {
-    MAX_ZIP_BYTES: 50 * 1024 * 1024, // 50 MB, matches the uploader UI copy
-    MAX_EXTRACTED_BYTES: 300 * 1024 * 1024, // guard against zip bombs
+    MAX_ZIP_BYTES: 2 * 1024 * 1024 * 1024, // 2 GB, matches the uploader UI copy
+    MAX_EXTRACTED_BYTES: 6 * 1024 * 1024 * 1024, // guard against zip bombs; headroom above MAX_ZIP_BYTES for decompression
     MAX_FILE_COUNT: 20000,
     MAX_SINGLE_FILE_BYTES: 5 * 1024 * 1024,
   },
 
   GITHUB: {
-    CLONE_TIMEOUT_MS: 60 * 1000, // kill a hung/oversized clone
-    MAX_REPO_BYTES: 300 * 1024 * 1024, // same ceiling as an uploaded ZIP, post-clone
+    CLONE_TIMEOUT_MS: 120 * 1000, // kill a hung/oversized clone (bumped alongside the size ceiling)
+    MAX_REPO_BYTES: 2 * 1024 * 1024 * 1024, // same ceiling as an uploaded ZIP, post-clone
     ALLOWED_HOSTS: ['github.com'],
     // Deep enough to give git-history analysis (churn, contributors) real
     // signal, shallow enough to stay fast on large repos. A full clone
