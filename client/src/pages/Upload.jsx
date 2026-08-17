@@ -37,8 +37,8 @@ export default function Upload() {
       setError('Please choose a .zip file.');
       return;
     }
-    if (f.size > 50 * 1024 * 1024) {
-      setError('That file is larger than the 50 MB limit.');
+    if (f.size > 2 * 1024 * 1024 * 1024) {
+      setError('That file is larger than the 2 GB limit.');
       return;
     }
     setFile(f);
@@ -199,7 +199,7 @@ export default function Upload() {
               className="hidden"
               onChange={(e) => validateAndSet(e.target.files?.[0])}
             />
-            <p className="mt-6 text-xs text-paper-500">Maximum size: 50 MB &middot; Supported: ZIP</p>
+            <p className="mt-6 text-xs text-paper-500">Maximum size: 2 GB &middot; Supported: ZIP</p>
 
             {file && (
               <div className="mt-6 w-full flex items-center gap-3 rounded-lg border border-ink-600 bg-ink-800 px-4 py-3 text-left">
@@ -237,7 +237,7 @@ export default function Upload() {
               placeholder="https://github.com/owner/repo"
               className="mono mt-6 w-full rounded-lg border border-ink-600 bg-ink-800 px-4 py-3 text-sm text-paper-100 placeholder:text-paper-500 focus:outline-none focus:border-spotlight"
             />
-            <p className="mt-2 text-xs text-paper-500 self-start">Public repositories only &middot; up to 300 MB</p>
+            <p className="mt-2 text-xs text-paper-500 self-start">Public repositories only &middot; up to 2 GB</p>
 
             {error && (
               <div className="mt-4 w-full flex items-center gap-2 text-sm text-sev-high">
