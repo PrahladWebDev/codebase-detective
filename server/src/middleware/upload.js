@@ -4,7 +4,18 @@ const fs = require('fs');
 const os = require('os');
 const { v4: uuidv4 } = require('uuid');
 const AdmZip = require('adm-zip');
-const { UPLOAD } = require('../config/constants');
+const { UPLOAD, IGNORE_DIRS } = require('../config/constants');
+
+const IGNORE_DIR_SET = new Set(IGNORE_DIRS);
+
+// True if any path segment (e.g. "node_modules", ".git") is one fileScanner
+// would ignore anyway. Checked pre-extraction so entries inside these dirs
+// never count against MAX_FILE_COUNT or get written to disk at all — a repo
+// zipped with node_modules included can easily have 50k+ entries that are
+// never actually analyzed.
+function isIgnoredEntry(entryName) {
+  return entryName.split(/[/\\]/).some((segment) => IGNORE_DIR_SET.has(segment));
+}
 
 // Uploaded ZIPs are held in memory only long enough to validate + extract them.
 const storage = multer.memoryStorage();
@@ -30,7 +41,8 @@ const upload = multer({
  */
 function safeExtractZip(buffer) {
   const zip = new AdmZip(buffer);
-  const entries = zip.getEntries();
+  const allEntries = zip.getEntries();
+  const entries = allEntries.filter((entry) => !isIgnoredEntry(entry.entryName));
 
   if (entries.length > UPLOAD.MAX_FILE_COUNT) {
     throw new Error(`ZIP contains too many entries (${entries.length}). Limit is ${UPLOAD.MAX_FILE_COUNT}.`);
